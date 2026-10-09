@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <!-- OpenStreetMap tile qaydası: brauzer düzgün Referer göndərməlidir -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Bakı Xəritəsi</title>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map" role="application" aria-label="Bakı xəritəsi"></div>
+
+  <!-- Status zolağı: mətn + işarə (yalnız rəng deyil) -->
+  <div id="status" class="status status--loading" role="status" aria-live="polite">
+    <span class="status__icon" aria-hidden="true">⏳</span>
+    <span class="status__text">Xəritə yüklənir…</span>
+    <button id="btn-retry-partial" class="btn btn--retry-sm" type="button" hidden>
+      <span aria-hidden="true">↻</span> Yenidən yoxla
+    </button>
+  </div>
+
+  <!-- İdarəetmə düymələri -->
+  <div class="controls" aria-label="Xəritə idarəetməsi">
+    <button id="btn-zoom-in" class="btn btn--square" type="button" aria-label="Böyüt">
+      <span aria-hidden="true">+</span>
+    </button>
+    <button id="btn-zoom-out" class="btn btn--square" type="button" aria-label="Kiçilt">
+      <span aria-hidden="true">−</span>
+    </button>
+  </div>
+
+  <button id="btn-home" class="btn btn--home" type="button">
+    <span aria-hidden="true">⌂</span> Bakıya qayıt
+  </button>
+
+  <!-- Xəta paneli -->
+  <div id="error" class="error" role="alertdialog" aria-labelledby="error-title" aria-describedby="error-text" hidden>
+    <div class="error__box">
+      <div class="error__icon" aria-hidden="true">⚠</div>
+      <h1 id="error-title" class="error__title">Xəritə yüklənmədi</h1>
+      <p id="error-text" class="error__text">
+        İnternet bağlantısını yoxlayın və bir az sonra yenidən cəhd edin.
+      </p>
+      <button id="btn-retry" class="btn btn--retry" type="button">
+        <span aria-hidden="true">↻</span> Yenidən yoxla
+      </button>
+    </div>
+  </div>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
