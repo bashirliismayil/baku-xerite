@@ -183,3 +183,150 @@ html, body {
   .error__text { font-size: 20px; }
   .btn--retry  { font-size: 24px; }
 }
+
+/* =====================================================================
+   Mərhələ 2: mövqe düymələri, məlumat kartı, işarə və dəqiqlik dairəsi
+   Vəziyyət həmişə mətn + işarə ilə göstərilir; rəng yalnız əlavədir.
+   ===================================================================== */
+.geo-controls {
+  position: absolute;
+  right: var(--gap);
+  bottom: calc(var(--gap) + 36px);   /* attribution sətrini örtməsin */
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+}
+.btn--geo {
+  height: var(--btn);
+  padding: 0 32px;
+  font-size: 30px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn--geo[hidden] { display: none; }
+.btn--geo-stop { border-color: var(--danger); }
+
+.geo-card {
+  max-width: 560px;
+  padding: 18px 22px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 3px solid var(--panel-border);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.geo-card[hidden] { display: none; }
+.geo-card__head { display: flex; align-items: center; gap: 12px; }
+.geo-card__icon { font-size: 30px; line-height: 1; }
+.geo-card__title { font-size: 28px; font-weight: 700; }
+.geo-card__lines { margin-top: 10px; }
+.geo-card__line { font-size: 23px; line-height: 1.4; color: var(--text-muted); }
+.geo-card--live  { border-color: var(--ok); }
+.geo-card--live  .geo-card__icon { color: #3b82f6; }
+.geo-card--wait  { border-color: var(--accent); }
+.geo-card--warn  { border-color: var(--warn); }
+.geo-card--stale { border-color: var(--warn); border-style: dashed; }
+.geo-card--error { border-color: var(--danger); }
+.btn--geo-close {
+  margin-top: 14px;
+  height: 64px;
+  padding: 0 28px;
+  font-size: 24px;
+  font-weight: 600;
+}
+.btn--geo-close[hidden] { display: none; }
+
+/* Mövqe işarəsi: canlı — dolu mavi nöqtə; köhnə — boz, içi boş, qırıq xətt + “!” */
+.geo-marker { background: none; border: none; }
+.geo-dot {
+  width: 36px; height: 36px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #1a73e8;
+  border: 6px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+.geo-marker--stale .geo-dot {
+  background: #f1f3f4;
+  border: 5px dashed #5f6368;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  position: relative;
+}
+.geo-marker--stale .geo-dot::after {
+  content: "!";
+  position: absolute; left: 0; right: 0; top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font: 700 18px/1 var(--font);
+  color: #3c4043;
+}
+.geo-acc { fill: #1a73e8; fill-opacity: 0.15; stroke: #1a73e8; stroke-opacity: 0.6; stroke-width: 2; }
+.geo-acc--stale { fill: #80868b; fill-opacity: 0.12; stroke: #5f6368; stroke-dasharray: 8 6; }
+
+/* ---------- Yerləşmə: üst sütun (status + mövqe kartı) ----------
+   Hər iki element eyni sütundadır, ona görə heç vaxt üst-üstə düşmür.
+   Sütun aşağı idarəetmə zonasına (--bottom-reserve) qədər uzana bilər; kart uzun olsa sürüşür. */
+:root { --bottom-reserve: calc(var(--gap) + 36px + 2 * var(--btn) + 32px); }
+.top-stack {
+  position: absolute;
+  top: var(--gap); left: var(--gap); right: var(--gap);
+  bottom: var(--bottom-reserve);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  pointer-events: none;            /* boş sahədə xəritə barmaqla sürüşdürülə bilsin */
+}
+.top-stack > * { pointer-events: auto; }
+.top-stack .status {
+  position: static;
+  transform: none;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+.top-stack .geo-card {
+  align-self: flex-start;
+  max-width: min(560px, 100%);
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow-y: auto;
+}
+
+/* Kiçik ekranlar (Mərhələ 1 ölçüləri ilə eyni hədd) */
+@media (max-width: 700px), (max-height: 520px) {
+  .btn--geo        { font-size: 20px; padding: 0 16px; }
+  .geo-card        { padding: 10px 14px; }
+  .geo-card__title { font-size: 20px; }
+  .geo-card__line  { font-size: 16px; }
+}
+
+/* Telefon şaquli (dar): aşağıda bir sətir [Bakıya qayıt] … [+][−],
+   onun üstündə sağda GPS düymələri sütunu. */
+@media (max-width: 600px) {
+  :root { --bottom-reserve: calc(var(--gap) + 36px + 3 * var(--btn) + 36px); }
+  .status {
+    white-space: normal;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+  .btn--home { font-size: 20px; padding: 0 16px; }
+  .controls {
+    top: auto;
+    transform: none;
+    bottom: calc(var(--gap) + 36px);
+    flex-direction: row;
+    gap: 10px;
+  }
+  .btn--square { width: 56px; height: var(--btn); }
+  .geo-controls { bottom: calc(var(--gap) + 36px + var(--btn) + 12px); gap: 12px; }
+}
+
+/* Telefon üfüqi (alçaq, enli): GPS düymələri yan-yana, zoom düymələrinin altında */
+@media (max-height: 520px) and (min-width: 601px) {
+  :root { --bottom-reserve: calc(var(--gap) + 36px + var(--btn) + 12px); }
+  .geo-controls { flex-direction: row; align-items: flex-end; }   /* [Dayandır] [Mövqeyimi göstər] */
+  .geo-card__line { font-size: 15px; line-height: 1.3; }
+}

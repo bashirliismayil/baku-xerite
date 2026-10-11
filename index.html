@@ -12,13 +12,26 @@
 <body>
   <div id="map" role="application" aria-label="Bakı xəritəsi"></div>
 
-  <!-- Status zolağı: mətn + işarə (yalnız rəng deyil) -->
-  <div id="status" class="status status--loading" role="status" aria-live="polite">
-    <span class="status__icon" aria-hidden="true">⏳</span>
-    <span class="status__text">Xəritə yüklənir…</span>
-    <button id="btn-retry-partial" class="btn btn--retry-sm" type="button" hidden>
-      <span aria-hidden="true">↻</span> Yenidən yoxla
-    </button>
+  <!-- Yuxarı sütun: xəritə statusu və mövqe kartı bir-birini örtməsin -->
+  <div class="top-stack">
+    <!-- Status zolağı: mətn + işarə (yalnız rəng deyil) -->
+    <div id="status" class="status status--loading" role="status" aria-live="polite">
+      <span class="status__icon" aria-hidden="true">⏳</span>
+      <span class="status__text">Xəritə yüklənir…</span>
+      <button id="btn-retry-partial" class="btn btn--retry-sm" type="button" hidden>
+        <span aria-hidden="true">↻</span> Yenidən yoxla
+      </button>
+    </div>
+
+    <!-- Mərhələ 2: mövqe (brauzerin öz geolocation imkanı) -->
+    <div id="geo-card" class="geo-card" role="status" aria-live="polite" hidden>
+      <div class="geo-card__head">
+        <span id="geo-icon" class="geo-card__icon" aria-hidden="true"></span>
+        <span id="geo-title" class="geo-card__title"></span>
+      </div>
+      <div id="geo-lines" class="geo-card__lines"></div>
+      <button id="btn-geo-close" class="btn btn--geo-close" type="button" hidden>Bağla</button>
+    </div>
   </div>
 
   <!-- İdarəetmə düymələri -->
@@ -34,6 +47,16 @@
   <button id="btn-home" class="btn btn--home" type="button">
     <span aria-hidden="true">⌂</span> Bakıya qayıt
   </button>
+
+  <!-- Mərhələ 2: mövqe düymələri -->
+  <div class="geo-controls" aria-label="Mövqe idarəetməsi">
+    <button id="btn-locate-stop" class="btn btn--geo btn--geo-stop" type="button" hidden>
+      <span aria-hidden="true">■</span> İzləməni dayandır
+    </button>
+    <button id="btn-locate" class="btn btn--geo" type="button">
+      <span aria-hidden="true">◎</span> Mövqeyimi göstər
+    </button>
+  </div>
 
   <!-- Xəta paneli -->
   <div id="error" class="error" role="alertdialog" aria-labelledby="error-title" aria-describedby="error-text" hidden>
@@ -51,5 +74,6 @@
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="app.js"></script>
+  <script src="geo.js"></script>
 </body>
 </html>

@@ -357,6 +357,6 @@
 
   updateZoomButtons();
 
-  // Testlər üçün (istifadəçiyə təsir etmir)
+  // Xəritəyə çıxış: geo.js (Mərhələ 2) və avtomatik testlər üçün
   window.__bakuMap = { map: map, tiles: tiles, config: CONFIG, cycle: snapshot };
 })();
