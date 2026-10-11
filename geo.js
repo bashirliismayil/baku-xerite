@@ -21,9 +21,14 @@
 (function () {
   'use strict';
 
-  var VERSION = 'M2-diaqnostika1';
+  // SINAQ VERSİYASI (həll deyil): real Chrome-da avtomatik getCurrentPosition sorğusu
+  // “User denied Geolocation” (code 1) verdi, Permissions API isə “granted” göstərdi.
+  // Səbəbi ayırmaq üçün avtomatik getCurrentPosition çağırışları müvəqqəti söndürülüb (autoPoll: false);
+  // yalnız istifadəçinin düymə ilə başlatdığı watchPosition işləyir. Kod silinməyib.
+  var VERSION = 'M2-watch-only1';
 
   var GEO = {
+    autoPoll: false,           // M2-watch-only1: avtomatik getCurrentPosition YOXDUR (bütün yollar requestFresh-dən keçir)
     staleMs: 15000,            // bu müddətdən köhnə ölçmə canlı sayılmır
     pollAfterMs: 10000,        // son qəbul edilmiş ölçmədən bu qədər sonra — təzə ölçmə sorğusu
     firstFixTimeoutMs: 30000,  // ilk təzə ölçmə bu müddətdə gəlmirsə — xəbərdarlıq
@@ -46,7 +51,7 @@
     followOn:      'Məni izlə: açıq',
     followOff:     'Məni izlə: dayandırılıb — qayıtmaq üçün “Mövqeyimi göstər” basın',
     cachedIgnored: 'Köhnə (yaddaşda saxlanmış) mövqe gəldi və istifadə edilmədi. Təzə ölçmə gözlənilir…',
-    badTime:       'Mövqe gəldi, lakin ölçmə vaxtı etibarsızdır — istifadə edilmədi. Təzə ölçmə istənilir…',
+    badTime:       'Mövqe gəldi, lakin ölçmə vaxtı etibarsızdır — istifadə edilmədi. Təzə ölçmə gözlənilir…',
     denied:        'Mövqe icazəsi verilmədi. Brauzerin parametrlərində bu sayt üçün mövqe (location) icazəsini açın və “Mövqeyimi göstər” düyməsini yenidən basın.',
     deniedTitle:   'Mövqe icazəsi yoxdur',
     unavailable:   'Mövqe hazırda müəyyən edilə bilmir. Açıq səmada olduğunuzu yoxlayın. Axtarış davam edir…',
@@ -55,7 +60,8 @@
     unsupported:   'Bu brauzer mövqe funksiyasını dəstəkləmir.',
     insecure:      'Mövqe yalnız təhlükəsiz (https://) ünvanda işləyir.',
     noMap:         'Xəritə yüklənmədiyi üçün mövqe göstərilə bilmir.',
-    errTitle:      'Mövqe göstərilə bilmir'
+    errTitle:      'Mövqe göstərilə bilmir',
+    versionLine:   'Versiya: '
   };
 
   // ---------- DOM ----------
@@ -132,6 +138,7 @@
   // Təzə ölçmə sorğusu: yalnız açıq sorğu yoxdursa və son sorğudan ≥10 san keçibsə
   // Hər sorğu öz id-si ilə göndərilir; callback yalnız id hələ də currentPollId-dirsə qəbul olunur.
   function requestFresh(t) {
+    if (!GEO.autoPoll) return;       // M2-watch-only1: söndürülüb — getCurrentPosition çağırılmır
     if (!active || currentPollId !== 0 || t - lastPollAt < GEO.pollIntervalMs) return;
     pollSeq++;
     currentPollId = pollSeq;
@@ -266,7 +273,7 @@
 
     if (!active) {
       if (fatal) setCard('error', '✕', fatal.title, [fatal.text], true,
-                         fatal.diag ? diagLines(fatal.diag) : ['Versiya: ' + VERSION]);
+                         fatal.diag ? diagLines(fatal.diag) : [T.versionLine + VERSION]);
       else card.hidden = true;
       return;
     }
@@ -276,6 +283,7 @@
       if (cachedNote) lines.push(T.cachedIgnored);
       if (badTimeNote) lines.push(T.badTime);
       if (softError) lines.push(softError);
+      lines.push(T.versionLine + VERSION);
       setCard(softError ? 'warn' : 'wait', softError ? '⚠' : '⏳', T.searching, lines, false);
       return;
     }
@@ -291,6 +299,7 @@
     if (badTimeNote) info.push(T.badTime);
     if (softError) info.push(softError);
 
+    info.push(T.versionLine + VERSION);
     if (live) setCard('live', '●', T.live, info, false);
     else      setCard('stale', '⚠', T.stale, info, false);
 
