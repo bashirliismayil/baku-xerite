@@ -21,6 +21,8 @@
 (function () {
   'use strict';
 
+  var VERSION = 'M2-diaqnostika1';
+
   var GEO = {
     staleMs: 15000,            // bu müddətdən köhnə ölçmə canlı sayılmır
     pollAfterMs: 10000,        // son qəbul edilmiş ölçmədən bu qədər sonra — təzə ölçmə sorğusu
@@ -83,7 +85,10 @@
   var softError = null;      // izləməni dayandırmayan xəta mesajı
   var cachedNote = false;    // ilk fix-dən əvvəl keş ölçmə rədd edilib
   var badTimeNote = false;   // son nümunə etibarsız vaxta görə rədd edilib
-  var fatal = null;          // izləməni dayandıran xəta {title,text}
+  var fatal = null;          // izləməni dayandıran xəta {title,text,diag?}
+  var sessionStartAt = 0;    // cari sessiyanın başlama anı (diaqnostika üçün)
+  var sessionNo = 0;         // “Mövqeyimi göstər” ilə neçənci izləmə sessiyası (diaqnostika üçün)
+  var diagSeq = 0;           // hər diaqnostika qeydinin öz nömrəsi (gecikmiş Permissions cavabı üçün)
   var centeredOnce = false;
   var tickTimer = null, firstFixTimer = null;
   var marker = null, circle = null;
@@ -170,26 +175,98 @@
   }
 
   // ---------- Görünüş ----------
-  function setCard(kind, icon, title, lines, showClose) {
+  // Bütün mətnlər textContent ilə yazılır (brauzerin xəta mətni də) — HTML kimi şərh edilmir.
+  function setCard(kind, icon, title, lines, showClose, diagLines) {
     card.hidden = false;
     card.className = 'geo-card geo-card--' + kind;
     cardIcon.textContent = icon;
     cardTitle.textContent = title;
     while (cardLines.firstChild) cardLines.removeChild(cardLines.firstChild);
-    for (var i = 0; i < lines.length; i++) {
-      var p = document.createElement('div');
+    var i, p;
+    for (i = 0; i < lines.length; i++) {
+      p = document.createElement('div');
       p.className = 'geo-card__line';
       p.textContent = lines[i];
       cardLines.appendChild(p);
     }
+    if (diagLines && diagLines.length) {
+      var box = document.createElement('div');
+      box.className = 'geo-card__diag';
+      box.id = 'geo-diag';
+      for (i = 0; i < diagLines.length; i++) {
+        p = document.createElement('div');
+        p.className = 'geo-card__diag-line';
+        p.textContent = diagLines[i];
+        box.appendChild(p);
+      }
+      cardLines.appendChild(box);
+    }
     btnClose.hidden = !showClose;
+  }
+
+  // ---------- Diaqnostika (M2-diaqnostika1) ----------
+  // Koordinat YAZILMIR, heç yerə göndərilmir — yalnız xəta kartında göstərilir.
+  var CODE_NAMES = { 1: 'PERMISSION_DENIED', 2: 'POSITION_UNAVAILABLE', 3: 'TIMEOUT' };
+
+  function fmtSec(ms) { return (Math.round(ms / 100) / 10).toFixed(1).replace('.', ',') + ' san'; }
+
+  // stopInternal()-dən ƏVVƏL çağırılır: sessiya, sorğu və son ölçmə məlumatı hələ sıfırlanmayıb.
+  function buildDiag(err, sid, pollId, t) {
+    var msg = (err && err.message !== undefined && err.message !== null) ? String(err.message) : '';
+    if (msg.length > 300) msg = msg.slice(0, 300) + '…';
+    diagSeq++;
+    return {
+      seq: diagSeq,
+      version: VERSION,
+      source: pollId ? 'getCurrentPosition' : 'watchPosition',
+      code: err ? err.code : undefined,
+      message: msg,
+      sessionId: sessionNo,             // sid yalnız callback yoxlaması üçündür; burada istifadəçi sessiyası
+      pollId: pollId || 0,
+      elapsedMs: t - sessionStartAt,
+      lastFixAgeMs: last ? t - last.measuredAt : null,
+      permission: 'yoxlanılır…'
+    };
+  }
+
+  // Permissions API ilə icazə vəziyyəti. Cavab yalnız həmin diaqnostika hələ göstərilirsə yazılır.
+  function queryPermission(d) {
+    function apply(text) {
+      if (fatal && fatal.diag && fatal.diag.seq === d.seq) { d.permission = text; render(); }
+    }
+    var perms = navigator.permissions;
+    if (!perms || typeof perms.query !== 'function') { d.permission = 'Permissions API dəstəklənmir'; return; }
+    try {
+      perms.query({ name: 'geolocation' }).then(function (st) {
+        apply(st && st.state ? String(st.state) : 'naməlum (cavabda state yoxdur)');
+      }, function (e) {
+        apply('Permissions API sorğusu uğursuz: ' + String((e && e.message) || e));
+      });
+    } catch (e) {
+      d.permission = 'Permissions API sorğusu uğursuz: ' + String((e && e.message) || e);
+    }
+  }
+
+  function diagLines(d) {
+    var name = CODE_NAMES[d.code] ? ' (' + CODE_NAMES[d.code] + ')' : '';
+    return [
+      'Diaqnostika · versiya ' + d.version,
+      'Mənbə: ' + d.source + (d.source === 'getCurrentPosition' ? ' (təzələmə sorğusu)' : ' (davamlı izləmə)'),
+      'error.code: ' + String(d.code) + name,
+      'error.message: ' + (d.message ? '“' + d.message + '”' : '(boş)'),
+      'Sessiya: #' + d.sessionId + ' · Sorğu: ' + (d.pollId ? '#' + d.pollId : '— (watch)'),
+      'Sessiya başlayandan: ' + fmtSec(d.elapsedMs),
+      'Son uğurlu ölçmənin yaşı: ' + (d.lastFixAgeMs === null ? 'uğurlu ölçmə olmayıb' : fmtSec(d.lastFixAgeMs)),
+      'İcazə (Permissions API): ' + d.permission
+    ];
   }
 
   function render() {
     btnStop.hidden = !active;
 
     if (!active) {
-      if (fatal) setCard('error', '✕', fatal.title, [fatal.text], true);
+      if (fatal) setCard('error', '✕', fatal.title, [fatal.text], true,
+                         fatal.diag ? diagLines(fatal.diag) : ['Versiya: ' + VERSION]);
       else card.hidden = true;
       return;
     }
@@ -298,8 +375,10 @@
       if (!acceptPollCallback(pollId)) return;         // köhnə sorğunun gecikmiş xətası — yox say
       var code = err && err.code;
       if (code === 1) {                                 // PERMISSION_DENIED — izləmə dayanır
+        var d = buildDiag(err, sid, pollId, now());     // vəziyyət sıfırlanmazdan ƏVVƏL
         stopInternal();
-        fatal = { title: T.deniedTitle, text: T.denied };
+        fatal = { title: T.deniedTitle, text: T.denied, diag: d };
+        queryPermission(d);
         render();
         return;
       }
@@ -348,6 +427,8 @@
     last = null;
     centeredOnce = false;
     lastAcceptedAt = now();
+    sessionStartAt = now();
+    sessionNo++;
     lastPollAt = now();
     currentPollId = 0;
 
@@ -405,6 +486,8 @@
     config: GEO,
     state: function () {
       return {
+        version: VERSION,
+        diag: fatal && fatal.diag ? JSON.parse(JSON.stringify(fatal.diag)) : null,
         active: active, follow: follow, watching: watchId !== null,
         hasFix: !!last, live: isLive(),
         fix: last ? { lat: last.lat, lng: last.lng, acc: last.acc, measuredAt: last.measuredAt } : null,
